@@ -27,7 +27,7 @@ To run this program on your local machine, follow the steps below:
 
    ```bash
    git clone https://github.com/your-username/veridion-challenge.git
-   cd website-logo-similarity
+   cd veridion-challenge
 
 2. **Create environment**:
    ```bash
