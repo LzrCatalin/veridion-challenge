@@ -2,7 +2,7 @@ import os
 import sys
 import shutil
 import pandas as pd
-from src.logo_fetch import scrape_website_logo, retrieve_websites
+from src.logo_fetch import scrape_website_logo
 from src.logo_processing import image_resize, image_SIFT_processing, image_ORB_processing, hu_moments
 from src.logo_similarity import similarity
 
@@ -36,8 +36,7 @@ def remove_processed_images_folder():
 		shutil.rmtree('src/logos_ORB')
 
 if __name__ == '__main__':
-	# return pair of image with it's url after scraping websites for
-	# logos and save them
+	# return a mapping of the stored images to their corresponding URLs
 	logo_url_mapping = scrape_website_logo()
 
 	# process images

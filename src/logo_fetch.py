@@ -17,13 +17,45 @@ COMMON_WORDS = ['logo', 'brand', 'site-logo']
 '''
     Ensure HTTP/HTTPS in URL:
         - Takes a URL as input and ensures it has either "http://" or "https://".
-        - If missing, it prepends "https://".
-        - Returns the corrected URL.
+        - Attempts a GET request to verify which protocol (HTTP or HTTPS) is supported.
+        - Returns the tuple of website response data with the website url.
 '''
-def ensure_http(url):
+def ensure_http_request(url):
+	# print(f'Verifying {url}')
+
 	if not url.startswith(('http://', 'https://')):
-		return 'https://' + url
-	return url
+		#
+		#	Verify both protocols
+		#
+		try:
+			response_http = http.request('GET', 'http://' + url, timeout=1)
+			if response_http.status == 200:
+				# print(f'  -> http://{url}')
+				return response_http.data, 'http://' + url
+
+		except urllib3.exceptions.MaxRetryError:
+			pass
+
+		try:
+			response_https = http.request('GET', 'https://' + url, timeout=1)
+			if response_https.status == 200:
+				# print(f'  -> https://{url}')
+				return response_https.data, 'https://' + url
+
+		except urllib3.exceptions.MaxRetryError:
+			pass
+
+		# If neither protocol works, return None
+		return None, url
+
+	else:
+		# If the URL already has a protocol, fetch it directly
+		response = http.request('GET', url, timeout=5)
+		if response.status == 200:
+			return response.data, url
+
+		else:
+			return None, url
 
 
 '''
@@ -32,13 +64,17 @@ def ensure_http(url):
         - Ensures each URL is properly formatted with "https://" if missing.
         - Returns a list of valid website URLs.
 '''
-def retrieve_websites():
+def retrieve_websites_data():
 	# read .parquet file
 	df = pd.read_parquet('src/dataset/logos.snappy.parquet', engine='pyarrow')
 
 	# store websites into a list
-	websites = [ensure_http(w[0]) for w in df.values.tolist() if w[0]]
-	return websites
+	# 	-> df.values.tolist()[:x] 	=> set x as the maximum number of websites to verify
+	#	-> df.values.tolist() 		=> verify the whole dataset of websites
+	websites_data = [ensure_http_request(w[0]) for w in df.values.tolist()[:200] if w[0]]
+	websites_data = [data_url for data_url in websites_data if data_url[0] is not None]
+
+	return websites_data
 
 
 '''
@@ -58,20 +94,17 @@ def scrape_website_logo():
 	# map with image and url as key-value pair
 	logo_url_mapping = {}
 
-	# iterate list of websites links
-	# 	-> you can select for how many websites
-	# you can run the scrape
-	# 	-> Now: 200
-	for url in retrieve_websites()[:100]:
+	# iterate
+	for data, url in retrieve_websites_data():
+		if data is None:
+			continue
+
 		# split url to get website name
 		website_name = urlparse(url).netloc.split('.')[0]
 
 		try:
-			# fetch website response
-			response = http.request('GET', url, timeout=1)
-
 			# html parse
-			soup = bs(response.data, 'html.parser')
+			soup = bs(data, 'html.parser')
 
 			# look-up for logo in html parse data
 			for img in soup.find_all('img'):
