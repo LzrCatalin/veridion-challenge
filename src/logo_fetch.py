@@ -4,15 +4,6 @@ import pandas as pd
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup as bs
 
-'''
-	Logo Similarity
-
-	Logos Download:
-		1. Reading the .snappy.parquet file -> using pandas - DONE
-		2. Logo Extraction -> web scraping using BeautifulSoup and
-							saving images into a folder - DONE
-'''
-
 # create if it doesn't exist folder location for logos
 if not os.path.exists('src/logos'):
 	os.mkdir('src/logos')
@@ -22,18 +13,25 @@ http = urllib3.PoolManager()
 # defined list of most common used words for logo finding
 COMMON_WORDS = ['logo', 'brand', 'site-logo']
 
-'''
-Function for searching and downloading 
-websites logo.
-'''
 
-# Return a valid URL
+'''
+    Ensure HTTP/HTTPS in URL:
+        - Takes a URL as input and ensures it has either "http://" or "https://".
+        - If missing, it prepends "https://".
+        - Returns the corrected URL.
+'''
 def ensure_http(url):
 	if not url.startswith(('http://', 'https://')):
 		return 'https://' + url
 	return url
 
-# Retrieve websites from parquet file
+
+'''
+    Retrieve Websites from Parquet File:
+        - Reads a .snappy.parquet file containing website URLs using pandas.
+        - Ensures each URL is properly formatted with "https://" if missing.
+        - Returns a list of valid website URLs.
+'''
 def retrieve_websites():
 	# read .parquet file
 	df = pd.read_parquet('src/dataset/logos.snappy.parquet', engine='pyarrow')
@@ -42,12 +40,29 @@ def retrieve_websites():
 	websites = [ensure_http(w[0]) for w in df.values.tolist() if w[0]]
 	return websites
 
+
 '''
-	Scraping website for logo and save the image into a folder
+    Scrape Website for Logos:
+        - Iterates through a list of website URLs to extract logos.
+        - Fetches the website's HTML using urllib3.
+        - Parses the HTML using BeautifulSoup to find `<img>` tags.
+        - Identifies potential logos by checking:
+            - The `src` attribute.
+            - The `class` or `id` attributes for common keywords (e.g., "logo", "brand").
+        - Constructs the full logo URL and downloads the image if available.
+        - Saves each logo in the "src/logos" folder with a filename based on the website name.
+        - Handles various exceptions, including timeouts, connection errors, and invalid responses.
+        - Returns a dictionary mapping logo filenames to their corresponding website URLs.
 '''
 def scrape_website_logo():
+	# map with image and url as key-value pair
+	logo_url_mapping = {}
+
 	# iterate list of websites links
-	for url in retrieve_websites()[:20]:
+	# 	-> you can select for how many websites
+	# you can run the scrape
+	# 	-> Now: 200
+	for url in retrieve_websites()[:100]:
 		# split url to get website name
 		website_name = urlparse(url).netloc.split('.')[0]
 
@@ -74,7 +89,6 @@ def scrape_website_logo():
 								any(keyword in img.get('id', '') for keyword in COMMON_WORDS):
 
 							logo_url = urljoin(url, src)
-							# print(f'Logo: {logo_url}')
 
 							# download the logo
 							try:
@@ -87,6 +101,9 @@ def scrape_website_logo():
 									# save file
 									with open(file_path, 'wb') as logo_file:
 										logo_file.write(logo_response.data)
+
+									# store the website that has successfully been saved
+									logo_url_mapping[f'{website_name}.jpg'] = url
 
 								else:
 									print('Failed to download logo')
@@ -106,3 +123,5 @@ def scrape_website_logo():
 			print(f"HTTPError for {url}: {e}")
 		except Exception as e:
 			print(f"Unexpected error for {url}: {e}")
+
+	return logo_url_mapping
