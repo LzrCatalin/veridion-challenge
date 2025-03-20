@@ -1,12 +1,24 @@
 import os
 import sys
 import shutil
-import pandas as pd
 from src.logo_fetch import scrape_website_logo
 from src.logo_processing import image_resize, image_SIFT_processing, image_ORB_processing, hu_moments
-from src.logo_similarity import similarity
+from src.logo_similarity import compute_similarity, group_similar_logos
 
 sys.path.append('src')
+
+'''
+	Provide a prettier display method
+'''
+def print_groups(title, groups):
+	print("\n" + "=" * 50)
+	print(f" {title} ")
+	print("=" * 50)
+
+	for idx, group in enumerate(groups, start=1):
+		print(f"Group {idx}: {', '.join(group)} - {len(group)}\n")
+
+	print("=" * 50 + "\n")
 
 '''
 	Remove folders of downloaded images after scrape and
@@ -37,7 +49,7 @@ def remove_processed_images_folder():
 
 if __name__ == '__main__':
 	# return a mapping of the stored images to their corresponding URLs
-	logo_url_mapping = scrape_website_logo()
+	scrape_website_logo()
 
 	# process images
 	image_resize()
@@ -45,19 +57,24 @@ if __name__ == '__main__':
 	feature_SIFT_vector, valid_logos_SIFT = image_SIFT_processing()
 	feature_ORB_vector, valid_logos_ORB = image_ORB_processing()
 
-	# verify similarity
-	print("Similarity for HuMoments:")
-	similarity(feature_hu_vector, valid_logos_hu, logo_url_mapping)
+	# Compute similarities
+	hu_similarities = compute_similarity(feature_hu_vector, valid_logos_hu)
+	sift_similarities = compute_similarity(feature_SIFT_vector, valid_logos_SIFT)
+	orb_similarities = compute_similarity(feature_ORB_vector, valid_logos_ORB)
 
-	print("Similarity for SIFT:")
-	similarity(feature_SIFT_vector, valid_logos_SIFT, logo_url_mapping)
+	# Group similar logos
+	hu_groups = group_similar_logos(hu_similarities)
+	sift_groups = group_similar_logos(sift_similarities)
+	orb_groups = group_similar_logos(orb_similarities)
 
-	print("Similarity for ORB:")
-	similarity(feature_ORB_vector, valid_logos_ORB, logo_url_mapping)
+	# Print groups
+	print_groups("Hu Moments Groups:", hu_groups)
+	print_groups("SIFT Groups:", sift_groups)
+	print_groups("ORB Groups:", orb_groups)
 
 	# remove unwanted folders
 	remove_images_folder()
 
 	# remove processed logos folder after visualization
 	# uncomment line to delete processed folders after program run
-	# remove_processed_images_folder()
+	remove_processed_images_folder()

@@ -1,6 +1,0 @@
-urllib3
-pandas
-bs4
-opencv-python
-opencv-contrib-python
-scikit-learn

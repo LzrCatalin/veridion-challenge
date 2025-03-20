@@ -74,19 +74,14 @@ def hu_moments():
 			contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
 			if contours:
-				# moments
 				cnt = contours[0]
 				M = cv2.moments(cnt)
 				hu = cv2.HuMoments(M).flatten()
 
-				# append into the list
 				hu_moments_list.append(hu)
 				valid_logos.append(file)
 
-				# draw contours
 				cv2.drawContours(img, [cnt], -1, (150, 0, 255), 3)
-
-				# save images
 				cv2.imwrite(os.path.join(contour_images_path, file), img)
 
 	return np.array(hu_moments_list), valid_logos
@@ -107,14 +102,11 @@ def image_SIFT_processing():
 	# init SIFT detector
 	sift = cv2.SIFT_create()
 
-	# iterate resized images folder
 	for file in os.listdir(resized_images_path):
 		file_path = os.path.join(resized_images_path, file)
 
 		# load image in gray scale
 		resized_image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
-
-		# detect
 		keypoints, descriptors = sift.detectAndCompute(resized_image, None)
 
 		# verify descriptors
@@ -124,11 +116,8 @@ def image_SIFT_processing():
 			# append the valid file
 			valid_logos.append(file)
 
-		# draw keypoints on the image
 		image_sift = cv2.drawKeypoints(resized_image, keypoints, None,
 									   flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-
-		# save sift process image
 		cv2.imwrite(os.path.join(SIFT_images_path, file), image_sift)
 
 	return np.array(feature_SIFT_vector), valid_logos
@@ -154,8 +143,6 @@ def image_ORB_processing():
 
 		# load image
 		resized_image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
-
-		# detect
 		keypoints, descriptors = orb.detectAndCompute(resized_image, None)
 
 		# verify descriptors
@@ -165,10 +152,8 @@ def image_ORB_processing():
 			# append the valid file
 			valid_logos.append(file)
 
-		# draw
-		image_ORB = cv2.drawKeypoints(resized_image, keypoints, None, flags=0)
 
-		# save surf process image
+		image_ORB = cv2.drawKeypoints(resized_image, keypoints, None, flags=0)
 		cv2.imwrite(os.path.join(ORB_images_path, file), image_ORB)
 
 	return np.array(feature_ORB_vector), valid_logos

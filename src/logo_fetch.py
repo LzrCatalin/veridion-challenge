@@ -21,8 +21,6 @@ COMMON_WORDS = ['logo', 'brand', 'site-logo']
         - Returns the tuple of website response data with the website url.
 '''
 def ensure_http_request(url):
-	# print(f'Verifying {url}')
-
 	if not url.startswith(('http://', 'https://')):
 		#
 		#	Verify both protocols
@@ -30,7 +28,7 @@ def ensure_http_request(url):
 		try:
 			response_http = http.request('GET', 'http://' + url, timeout=1)
 			if response_http.status == 200:
-				# print(f'  -> http://{url}')
+				print(f'  -> http://{url}')
 				return response_http.data, 'http://' + url
 
 		except urllib3.exceptions.MaxRetryError:
@@ -39,7 +37,7 @@ def ensure_http_request(url):
 		try:
 			response_https = http.request('GET', 'https://' + url, timeout=1)
 			if response_https.status == 200:
-				# print(f'  -> https://{url}')
+				print(f'  -> https://{url}')
 				return response_https.data, 'https://' + url
 
 		except urllib3.exceptions.MaxRetryError:
@@ -52,6 +50,7 @@ def ensure_http_request(url):
 		# If the URL already has a protocol, fetch it directly
 		response = http.request('GET', url, timeout=5)
 		if response.status == 200:
+			print(f'  -> {url}')
 			return response.data, url
 
 		else:
@@ -65,15 +64,17 @@ def ensure_http_request(url):
         - Returns a list of valid website URLs.
 '''
 def retrieve_websites_data():
+	print('\tRetrieving Websites Data')
 	# read .parquet file
 	df = pd.read_parquet('src/dataset/logos.snappy.parquet', engine='pyarrow')
 
 	# store websites into a list
 	# 	-> df.values.tolist()[:x] 	=> set x as the maximum number of websites to verify
 	#	-> df.values.tolist() 		=> verify the whole dataset of websites
-	websites_data = [ensure_http_request(w[0]) for w in df.values.tolist()[:200] if w[0]]
+	websites_data = [ensure_http_request(w[0]) for w in df.values.tolist()[:100] if w[0]]
 	websites_data = [data_url for data_url in websites_data if data_url[0] is not None]
 
+	print('\tFinished Retrieving Websites Data\n\nWaiting for results...\n')
 	return websites_data
 
 
@@ -91,10 +92,7 @@ def retrieve_websites_data():
         - Returns a dictionary mapping logo filenames to their corresponding website URLs.
 '''
 def scrape_website_logo():
-	# map with image and url as key-value pair
-	logo_url_mapping = {}
 
-	# iterate
 	for data, url in retrieve_websites_data():
 		if data is None:
 			continue
@@ -103,12 +101,10 @@ def scrape_website_logo():
 		website_name = urlparse(url).netloc.split('.')[0]
 
 		try:
-			# html parse
 			soup = bs(data, 'html.parser')
 
 			# look-up for logo in html parse data
 			for img in soup.find_all('img'):
-				# print(img)
 
 				'''
 				Search for attributes: src, class or id
@@ -135,9 +131,6 @@ def scrape_website_logo():
 									with open(file_path, 'wb') as logo_file:
 										logo_file.write(logo_response.data)
 
-									# store the website that has successfully been saved
-									logo_url_mapping[f'{website_name}.jpg'] = url
-
 								else:
 									print('Failed to download logo')
 
@@ -156,5 +149,3 @@ def scrape_website_logo():
 			print(f"HTTPError for {url}: {e}")
 		except Exception as e:
 			print(f"Unexpected error for {url}: {e}")
-
-	return logo_url_mapping
