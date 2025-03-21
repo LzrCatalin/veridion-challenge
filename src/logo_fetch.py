@@ -89,10 +89,8 @@ def retrieve_websites_data():
         - Constructs the full logo URL and downloads the image if available.
         - Saves each logo in the "src/logos" folder with a filename based on the website name.
         - Handles various exceptions, including timeouts, connection errors, and invalid responses.
-        - Returns a dictionary mapping logo filenames to their corresponding website URLs.
 '''
 def scrape_website_logo():
-
 	for data, url in retrieve_websites_data():
 		if data is None:
 			continue

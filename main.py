@@ -48,10 +48,10 @@ def remove_processed_images_folder():
 		shutil.rmtree('src/logos_ORB')
 
 if __name__ == '__main__':
-	# return a mapping of the stored images to their corresponding URLs
+	# Start scraping
 	scrape_website_logo()
 
-	# process images
+	# Process images
 	image_resize()
 	feature_hu_vector, valid_logos_hu = hu_moments()
 	feature_SIFT_vector, valid_logos_SIFT = image_SIFT_processing()
@@ -77,4 +77,4 @@ if __name__ == '__main__':
 
 	# remove processed logos folder after visualization
 	# uncomment line to delete processed folders after program run
-	remove_processed_images_folder()
+	# remove_processed_images_folder()
